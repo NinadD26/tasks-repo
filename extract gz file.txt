@@ -1,0 +1,249 @@
+python script  to extract gz file from s3
+
+
+extract all gz file in that folder 02 == terra-logs/vpc-0078ac70f469fd875/AWSLogs/381492211326/vpcflowlogs/us-east-1/2024/07/02/
+
+import boto3
+import gzip
+import shutil
+import os
+
+def list_files_in_s3_directory(s3_bucket, s3_prefix):
+    s3 = boto3.client('s3')
+    response = s3.list_objects_v2(Bucket=s3_bucket, Prefix=s3_prefix)
+
+    file_keys = []
+    if 'Contents' in response:
+        for obj in response['Contents']:
+            file_keys.append(obj['Key'])
+    else:
+        print(f"No files found in {s3_prefix} in bucket {s3_bucket}")
+    
+    return file_keys
+
+def download_and_extract_gz(s3_bucket, s3_key, local_download_path, local_extract_path):
+    # Initialize S3 client
+    s3 = boto3.client('s3')
+
+    # Download the file from S3
+    s3.download_file(s3_bucket, s3_key, local_download_path)
+    print(f"Downloaded {s3_key} from bucket {s3_bucket} to {local_download_path}")
+
+    # Extract the .gz file
+    with gzip.open(local_download_path, 'rb') as f_in:
+        with open(local_extract_path, 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out)
+    print(f"Extracted {local_download_path} to {local_extract_path}")
+
+# Example usage
+s3_bucket = 'vpc-dlowlog-demo-sandbox'
+s3_prefix = 'terra-logs/vpc-0078ac70f469fd875/AWSLogs/381492211326/vpcflowlogs/us-east-1/2024/07/02/'
+
+# List all .gz files in the directory
+file_keys = list_files_in_s3_directory(s3_bucket, s3_prefix)
+
+# Directory to download and extract files
+local_dir = '/home/cloudshell-user/extracted_files/'
+
+# Ensure local directory exists
+os.makedirs(local_dir, exist_ok=True)
+
+# Download and extract each .gz file
+for file_key in file_keys:
+    if file_key.endswith('.gz'):
+        local_download_path = os.path.join(local_dir, os.path.basename(file_key))
+        local_extract_path = os.path.join(local_dir, os.path.basename(file_key).replace('.gz', ''))
+        download_and_extract_gz(s3_bucket, file_key, local_download_path, local_extract_path)
+
+
+
+
+
+
+/home/cloudshell-user/extracted_files/381492211326_vpcflowlogs_us-east-1_fl-03bb8e6f0589db7c6_20240702T0940Z_28e18d91.log
+
+extract single gz file form the folder 02
+
+import boto3
+import gzip
+import shutil
+import os
+
+def list_files_in_s3_directory(s3_bucket, s3_prefix):
+    s3 = boto3.client('s3')
+    response = s3.list_objects_v2(Bucket=s3_bucket, Prefix=s3_prefix)
+
+    file_keys = []
+    if 'Contents' in response:
+        for obj in response['Contents']:
+            file_keys.append(obj['Key'])
+    else:
+        print(f"No files found in {s3_prefix} in bucket {s3_bucket}")
+    
+    return file_keys
+
+def download_and_extract_gz(s3_bucket, s3_key, local_download_path, local_extract_path):
+    # Initialize S3 client
+    s3 = boto3.client('s3')
+
+    # Download the file from S3
+    s3.download_file(s3_bucket, s3_key, local_download_path)
+    print(f"Downloaded {s3_key} from bucket {s3_bucket} to {local_download_path}")
+
+    # Extract the .gz file
+    with gzip.open(local_download_path, 'rb') as f_in:
+        with open(local_extract_path, 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out)
+    print(f"Extracted {local_download_path} to {local_extract_path}")
+
+# Example usage to extract a specific .gz file
+s3_bucket = 'vpc-dlowlog-demo-sandbox'
+s3_key = 'terra-logs/vpc-0078ac70f469fd875/AWSLogs/381492211326/vpcflowlogs/us-east-1/2024/07/02/yourfile.gz'
+#local_download_path = '/home/cloudshell-user/parti_extracted_files/yourfile.gz'
+local_download_path = '/home/cloudshell-user/parti_extracted_files/381492211326_vpcflowlogs_us-east-1_fl-03bb8e6f0589db7c6_20240610T1145Z_8a416fa0.log.gz'
+local_extract_path = '/home/cloudshell-user/parti_extracted_files/'
+
+
+381492211326_vpcflowlogs_us-east-1_fl-03bb8e6f0589db7c6_20240610T1145Z_8a416fa0.log.gz
+
+
+# Ensure local directory exists
+os.makedirs(os.path.dirname(local_extract_path), exist_ok=True)
+
+# Download and extract the specific .gz file
+download_and_extract_gz(s3_bucket, s3_key, local_download_path, local_extract_path)
+
+
+
+
+
+import boto3
+import gzip
+import io
+import os
+
+# Replace these with your bucket and file path
+bucket_name = 'vpc-dlowlog-demo-sandbox'
+file_path = 'terra-logs/vpc-0078ac70f469fd875/AWSLogs/381492211326/vpcflowlogs/us-east-1/2024/06/10/'
+
+output_directory = './extracted_logs/'  # Directory to store extracted logs
+
+def extract_and_save_s3_gzip(bucket_name, file_path, output_directory):
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
+
+    s3 = boto3.client('s3')
+    response = s3.list_objects_v2(Bucket=bucket_name, Prefix=file_path)
+
+    for obj in response.get('Contents', []):
+        key = obj['Key']
+        if key.endswith('.log.gz'):  # assuming your files end with .log.gz
+            print(f"Processing {key}")
+            # Read gzip file from S3
+            obj = s3.get_object(Bucket=bucket_name, Key=key)
+            gzip_file = gzip.GzipFile(fileobj=obj['Body'])
+            # Read the contents assuming UTF-8 encoding
+            content = gzip_file.read().decode('utf-8')
+
+            # Write content to a file in output directory
+            filename = os.path.basename(key)[:-3]  # Remove .gz from filename
+            output_file_path = os.path.join(output_directory, filename)
+            with open(output_file_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+                print(f"Extracted content saved to {output_file_path}")
+
+# Call the function to extract and save gzip files
+extract_and_save_s3_gzip(bucket_name, file_path, output_directory)
+
+
+
+
+import boto3
+import gzip
+import io
+import os
+
+# Replace these with your bucket and file path
+bucket_name = 'vpc-dlowlog-demo-sandbox'
+file_path = 'terra-logs/vpc-0078ac70f469fd875/AWSLogs/381492211326/vpcflowlogs/us-east-1/2024/06/10/'
+
+output_directory = './extracted_logs/'  # Directory to store extracted logs
+
+def extract_and_save_s3_gzip(bucket_name, file_path, output_directory):
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
+
+    s3 = boto3.client('s3')
+    response = s3.list_objects_v2(Bucket=bucket_name, Prefix=file_path)
+
+    for obj in response.get('Contents', []):
+        key = obj['Key']
+        if key.endswith('.log.gz'):  # assuming your files end with .log.gz
+            print(f"Processing {key}")
+            # Read gzip file from S3
+            obj = s3.get_object(Bucket=bucket_name, Key=key)
+            gzip_file = gzip.GzipFile(fileobj=obj['Body'])
+            # Read the contents assuming UTF-8 encoding
+            content = gzip_file.read().decode('utf-8')
+
+            # Write content to a file in output directory
+            filename = os.path.basename(key)[:-3]  # Remove .gz from filename
+            output_file_path = os.path.join(output_directory, filename)
+            with open(output_file_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+                print(f"Extracted content saved to {output_file_path}")
+
+# Call the function to extract and save gzip files
+extract_and_save_s3_gzip(bucket_name, file_path, output_directory)
+
+
+
+converted logs in csv
+
+import boto3
+import gzip
+import csv
+import io
+import os
+
+# Replace these with your bucket and file path
+bucket_name = 'vpc-dlowlog-demo-sandbox'
+file_path = 'terra-logs/vpc-0078ac70f469fd875/AWSLogs/381492211326/vpcflowlogs/us-east-1/2024/06/10/'
+
+output_directory = './extracted_logs_csv/'  # Directory to store extracted logs in CSV format
+
+def convert_to_csv_and_save(bucket_name, file_path, output_directory):
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
+
+    s3 = boto3.client('s3')
+    response = s3.list_objects_v2(Bucket=bucket_name, Prefix=file_path)
+
+    for obj in response.get('Contents', []):
+        key = obj['Key']
+        if key.endswith('.log.gz'):  # assuming your files end with .log.gz
+            print(f"Processing {key}")
+            # Read gzip file from S3
+            obj = s3.get_object(Bucket=bucket_name, Key=key)
+            gzip_file = gzip.GzipFile(fileobj=obj['Body'])
+            # Read the contents assuming UTF-8 encoding
+            content = gzip_file.read().decode('utf-8')
+
+            # Convert content to CSV format
+            rows = [line.split() for line in content.strip().split('\n')]
+
+            # Write to CSV file
+            filename = os.path.basename(key)[:-3]  # Remove .gz from filename
+            csv_filename = os.path.join(output_directory, f"{filename}.csv")
+
+            with open(csv_filename, 'w', newline='') as f:
+                csv_writer = csv.writer(f)
+                csv_writer.writerows(rows)
+
+            print(f"Converted log to CSV: {csv_filename}")
+
+# Call the function to convert and save logs to CSV
+convert_to_csv_and_save(bucket_name, file_path, output_directory)
+
+
+/home/cloudshell-user/extracted_logs_csv/381492211326_vpcflowlogs_us-east-1_fl-03bb8e6f0589db7c6_20240610T1145Z_8a416fa0.log.csv
