@@ -1,0 +1,25 @@
+﻿This resource block configures server-side encryption for an S3 bucket using AWS KMS (Key Management Service). All objects stored in the S3 bucket will be encrypted using the specified KMS key. 
+The KMS_master_key_id parameter specifies the AWS KMS key to use for encryption. 
+The bucket_key_enabled parameter indicates whether to enable the bucket key feature.
+
+
+
+
+  
+
+
+This data block IAM policy is related to secure transport bucket policy.
+AWS IAM policy document that restricts access to an S3 bucket such that only requests made over TLS (Transport Layer Security) are allowed. This means any attempt to access the bucket without using HTTPS/TLS will be denied.
+In the condition section, when request comes under the HTTPS/TLS then the bool test operator is used to check if  “aws:SecureTransport” variable is set to “false”  if condition is met then request is denied. 
+
+
+
+  
+
+This resource block is related to bucket versioning.
+So e.g in a non-prod account there is one bucket. For this, bucket versioning is not enabled then we can use this resource block to enable versioning for that bucket.
+
+  
+
+This resource block is used to configure server access logging for an S3 bucket. By using this block, we can enable server access logs for a specific bucket and store all access logs in another designated bucket. The target_prefix allows us to create separate logs for different buckets, helping in organizing and managing access logs effectively.
+Every aws account has 3 regions, in every region one bucket is specified to store server access logs of other buckets in the same region.
